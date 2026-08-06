@@ -15,17 +15,11 @@ workflows:
       - name: Build C# Native AOT for Android (ARM64)
         script: |
           cd csharp_engine
-          # Trova la directory dell'NDK (Codemagic espone ANDROID_NDK_HOME, ma usiamo un fallback di sicurezza)
-          NDK_DIR=${ANDROID_NDK_HOME:-$(ls -d /usr/local/share/android-sdk/ndk/* | tail -n 1)}
-          NDK_BIN=$NDK_DIR/toolchains/llvm/prebuilt/darwin-x86_64/bin
-          NDK_CLANG=$(find $NDK_BIN -name "aarch64-linux-android*-clang" | head -n 1)
-          NDK_OBJCOPY=$(find $NDK_BIN -name "llvm-objcopy" | head -n 1)
-          echo "Using NDK Clang: $NDK_CLANG"
-          
-          ~/.dotnet/dotnet publish -c Release -r linux-bionic-arm64 /p:PublishAot=true /p:PublishTrimmed=true /p:NativeLib=Shared /p:CppCompilerAndLinker=$NDK_CLANG /p:ObjCopyName=$NDK_OBJCOPY -v n || true
+          # Usiamo net8.0-android che ha già l'NDK integrato, ma ignoriamo il bug di copia di MSBuild
+          ~/.dotnet/dotnet publish -c Release -r android-arm64 /p:PublishAot=true /p:PublishTrimmed=true /p:NativeLib=Shared -v n || true
           
           mkdir -p ../android/app/src/main/jniLibs/arm64-v8a
-          # Cerchiamo il file ovunque esso sia stato generato (con o senza prefisso lib)
+          # Cerchiamo il file ovunque (sarà in bin/Release/net8.0-android/android-arm64/native/libPediatricVitalEngine.so)
           SO_FILE=$(find . -name "*PediatricVitalEngine.so" | head -n 1)
           cp $SO_FILE ../android/app/src/main/jniLibs/arm64-v8a/libPediatricVitalEngine.so
 
