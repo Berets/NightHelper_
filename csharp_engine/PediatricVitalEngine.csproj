@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RuntimeIdentifier>linux-bionic-arm64</RuntimeIdentifier>
     <OutputType>Library</OutputType>
-    <UseAppHost>true</UseAppHost>
+    <UseAppHost>false</UseAppHost>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
