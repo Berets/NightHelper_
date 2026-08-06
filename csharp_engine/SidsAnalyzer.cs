@@ -7,16 +7,24 @@ public class SidsAnalyzer
     private DateTime? _unsafePositionStartTime;
     private const int UnsafeDurationSeconds = 8;
 
-    public int CheckSidsRisk(float[] keypoints, int motionState)
+    public (int PostureState, int SidsRiskFlag) AnalyzePostureAndRisk(float[] keypoints, int motionState)
     {
-        // Se c'è un macro movimento, potremmo non avere una lettura stabile, resettiamo
+        // Se c'è un macro movimento, potremmo non avere una lettura stabile, resettiamo il timer
         if (motionState == 2)
         {
             _unsafePositionStartTime = null;
-            return 0;
+            // Supponiamo mantenga lo stato precedente o ritorni 0 temporaneamente.
+            // Per questo modulo mock, restituiamo Supina.
+            return (0, 0); 
         }
 
-        bool isUnsafe = IsPositionUnsafe(keypoints);
+        int postureState = DeterminePosture(keypoints);
+        int sidsRiskFlag = 0;
+
+        // Regole di Rischio:
+        // Se Prona (1) -> SidsRisk = 1
+        // Se Viso Coperto (4) -> SidsRisk = 2
+        bool isUnsafe = (postureState == 1 || postureState == 4);
 
         if (isUnsafe)
         {
@@ -26,7 +34,7 @@ public class SidsAnalyzer
             }
             else if ((DateTime.UtcNow - _unsafePositionStartTime.Value).TotalSeconds >= UnsafeDurationSeconds)
             {
-                return 1; // SIDS Risk Flag (Viso Coperto / Prona per > 8s)
+                sidsRiskFlag = (postureState == 1) ? 1 : 2;
             }
         }
         else
@@ -34,18 +42,20 @@ public class SidsAnalyzer
             _unsafePositionStartTime = null;
         }
 
-        return 0;
+        return (postureState, sidsRiskFlag);
     }
 
-    private bool IsPositionUnsafe(float[] keypoints)
+    private int DeterminePosture(float[] keypoints)
     {
-        // Mock logic for determining if position is prone or face covered
-        // In a real scenario, this would use facial keypoint visibility and orientation
+        // Mock logic per determinare la postura dai keypoints facciali/corpo
         if (keypoints == null || keypoints.Length < 10)
         {
-            return true; // No face detected might mean face covered
+            // Se mancano i keypoints, simuliamo VISO COPERTO (4)
+            return 4;
         }
         
-        return false; // Assumed safe for dummy implementation
+        // Per il mock, restituiamo SUPINA (0) di default.
+        // In un caso reale, controlleremmo le proporzioni tra naso, occhi, e orecchie.
+        return 0; 
     }
 }

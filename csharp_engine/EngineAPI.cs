@@ -25,6 +25,9 @@ public static class EngineAPI
         }
     }
 
+    private static DateTime? _lastValidRoiTime = null;
+    private const int EmptyBedTimeoutSeconds = 5;
+
     [UnmanagedCallersOnly(EntryPoint = "calculate_vitals")]
     public static VitalMetrics CalculateVitals(IntPtr frameData, int width, int height)
     {
@@ -35,26 +38,49 @@ public static class EngineAPI
         // 1. Esegui Inferenza ONNX (ROI e Keypoints)
         var result = _inferencer.ProcessFrame(frameData, width, height);
         
-        // 2. Classifica Movimento
-        metrics.MotionState = _motionClassifier.Classify(result.BoundingBox);
-        
-        // 3. Analisi SIDS (Orientamento Testa)
-        metrics.SidsRiskFlag = _sidsAnalyzer.CheckSidsRisk(result.Keypoints, metrics.MotionState);
-        
-        // 4. Aggiorna ROI nella struct
-        if (result.BoundingBox != null)
+        // 2. Controllo "Lettino Vuoto" (Coordinate ROI perse > 5 sec)
+        if (result.BoundingBox == null)
         {
+            if (_lastValidRoiTime != null && (DateTime.UtcNow - _lastValidRoiTime.Value).TotalSeconds > EmptyBedTimeoutSeconds)
+            {
+                metrics.PostureState = 3; // Lettino Vuoto / Assente
+                metrics.MotionState = 0;
+                metrics.SidsRiskFlag = 0;
+                return metrics; // Non possiamo calcolare nient'altro
+            }
+        }
+        else
+        {
+            _lastValidRoiTime = DateTime.UtcNow;
             metrics.RoiX = result.BoundingBox.X;
             metrics.RoiY = result.BoundingBox.Y;
             metrics.RoiW = result.BoundingBox.Width;
             metrics.RoiH = result.BoundingBox.Height;
         }
 
-        // Mock values for HR and RR based on typical pediatric ranges for now,
-        // typically this would be handled by a DSP/FFT pipeline over time.
-        metrics.HeartRateBPM = 110.5;
-        metrics.RespiratoryRateRPM = 25.0;
-        metrics.SignalConfidence = 0.95;
+        // 3. Classifica Movimento
+        metrics.MotionState = _motionClassifier.Classify(result.BoundingBox);
+        
+        // 4. Analisi SIDS e Postura
+        var (posture, riskFlag) = _sidsAnalyzer.AnalyzePostureAndRisk(result.Keypoints, metrics.MotionState);
+        metrics.PostureState = posture;
+        metrics.SidsRiskFlag = riskFlag;
+
+        // Mock values for HR and RR based on typical pediatric ranges for now.
+        // Pausa temporanea del calcolo se Macro-Movimento.
+        if (metrics.MotionState == 2)
+        {
+            // Valori fittizi per indicare pausa/invalidità temporanea durante il movimento
+            metrics.HeartRateBPM = 0;
+            metrics.RespiratoryRateRPM = 0;
+            metrics.SignalConfidence = 0.0;
+        }
+        else
+        {
+            metrics.HeartRateBPM = 110.5;
+            metrics.RespiratoryRateRPM = 25.0;
+            metrics.SignalConfidence = 0.95;
+        }
         
         return metrics;
     }
