@@ -86,9 +86,15 @@ typedef CalculateVitalsDart = VitalMetricsStruct Function(
   int imgHeight
 );
 
+// C: int32_t init_engine(char* modelPath)
+typedef InitEngineC = ffi.Int32 Function(ffi.Pointer<Utf8> modelPath);
+// Dart
+typedef InitEngineDart = int Function(ffi.Pointer<Utf8> modelPath);
+
 class NativeVitalBridge {
   static late final ffi.DynamicLibrary _lib;
   static late final CalculateVitalsDart _calculateVitals;
+  static late final InitEngineDart _initEngine;
   static bool isInitialized = false;
 
   static void init() {
@@ -108,11 +114,26 @@ class NativeVitalBridge {
       _calculateVitals = _lib
           .lookup<ffi.NativeFunction<CalculateVitalsC>>('calculate_vitals')
           .asFunction<CalculateVitalsDart>();
+          
+      _initEngine = _lib
+          .lookup<ffi.NativeFunction<InitEngineC>>('init_engine')
+          .asFunction<InitEngineDart>();
       
       isInitialized = true;
     } catch (e) {
       print("Avviso: Libreria nativa non trovata o caricamento fallito ($e). Uso fallback Dart puro.");
       isInitialized = false; // Forza il fallback Dart
+    }
+  }
+
+  static bool loadModel(String modelPath) {
+    if (!isInitialized) return false;
+    final ptr = modelPath.toNativeUtf8();
+    try {
+      final result = _initEngine(ptr);
+      return result == 1;
+    } finally {
+      calloc.free(ptr);
     }
   }
 

@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'native_vital_bridge.dart';
 
 class VitalPayload {
@@ -16,6 +18,22 @@ class VitalService {
   
   Future<void> initialize() async {
     NativeVitalBridge.init();
+    
+    // Estrai il modello ONNX dagli assets per il C#
+    if (NativeVitalBridge.isInitialized) {
+      try {
+        final byteData = await rootBundle.load('assets/yolov8n-pose.onnx');
+        final tempDir = Directory.systemTemp;
+        final tempFile = File('${tempDir.path}/yolov8n-pose.onnx');
+        await tempFile.writeAsBytes(
+            byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+        
+        bool success = NativeVitalBridge.loadModel(tempFile.path);
+        debugPrint("ONNX Engine Init: $success");
+      } catch (e) {
+        debugPrint("Errore nel caricamento del modello ONNX: $e");
+      }
+    }
   }
 
   final List<double> _rpmHistory = [];
