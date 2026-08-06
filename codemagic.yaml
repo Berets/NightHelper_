@@ -5,6 +5,12 @@ workflows:
     environment:
       flutter: stable
     scripts:
+      - name: Install .NET 8 SDK
+        script: |
+          curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+          chmod +x dotnet-install.sh
+          ./dotnet-install.sh --channel 8.0
+          echo 'export PATH="$PATH:$HOME/.dotnet"' >> $CM_ENV
       - name: Build C# Native AOT for Android (ARM64)
         script: |
           cd csharp_engine
