@@ -8,6 +8,7 @@ public static class EngineAPI
     private static OnnxInferencer? _inferencer;
     private static MotionClassifier _motionClassifier = new();
     private static SidsAnalyzer _sidsAnalyzer = new();
+    private static DspAnalyzer _dspAnalyzer = new();
     
     // Inizializza il modello ONNX
     [UnmanagedCallersOnly(EntryPoint = "init_engine")]
@@ -61,27 +62,27 @@ public static class EngineAPI
         }
 
         // 3. Classifica Movimento
-        metrics.MotionState = _motionClassifier.Classify(result.BoundingBox);
+        metrics.MotionState = _motionClassifier.Classify(result.BoundingBox, result.Keypoints);
         
         // 4. Analisi SIDS e Postura
         var (posture, riskFlag) = _sidsAnalyzer.AnalyzePostureAndRisk(result.Keypoints, metrics.MotionState);
         metrics.PostureState = posture;
         metrics.SidsRiskFlag = riskFlag;
 
-        // Mock values for HR and RR based on typical pediatric ranges for now.
-        // Pausa temporanea del calcolo se Macro-Movimento.
+        // 5. DSP Analysis for Heart Rate and Respiration Rate
         if (metrics.MotionState == 2)
         {
-            // Valori fittizi per indicare pausa/invalidità temporanea durante il movimento
+            // Pausa temporanea del calcolo se Macro-Movimento.
             metrics.HeartRateBPM = 0;
             metrics.RespiratoryRateRPM = 0;
             metrics.SignalConfidence = 0.0;
         }
         else
         {
-            metrics.HeartRateBPM = 110.5;
-            metrics.RespiratoryRateRPM = 25.0;
-            metrics.SignalConfidence = 0.95;
+            var (rpm, bpm, confidence) = _dspAnalyzer.AnalyzeSignal(signalBuffer, signalSize, outResp, outCardio);
+            metrics.HeartRateBPM = bpm;
+            metrics.RespiratoryRateRPM = rpm;
+            metrics.SignalConfidence = confidence;
         }
         
         return metrics;
