@@ -15,7 +15,7 @@ workflows:
       - name: Build C# Native AOT for Android (ARM64)
         script: |
           cd csharp_engine
-          ~/.dotnet/dotnet publish -c Release -r android-arm64 /p:PublishAot=true /p:PublishTrimmed=true /p:NativeLib=Shared -v n || true
+          ~/.dotnet/dotnet publish -c Release -r linux-bionic-arm64 /p:PublishAot=true /p:PublishTrimmed=true /p:NativeLib=Shared -v n || true
           mkdir -p ../android/app/src/main/jniLibs/arm64-v8a
           SO_FILE=$(find obj/Release -name "*PediatricVitalEngine.so" | head -n 1)
           cp $SO_FILE ../android/app/src/main/jniLibs/arm64-v8a/libPediatricVitalEngine.so

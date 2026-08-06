@@ -5,6 +5,9 @@ namespace PediatricVitalEngine;
 
 public static class EngineAPI
 {
+    // Dummy Main per bypassare il bug MSBuild che richiede un eseguibile per compilare NativeAOT. Il linker ignorerà questo e genererà una libreria condivisa.
+    public static void Main() {}
+
     private static OnnxInferencer? _inferencer;
     private static MotionClassifier _motionClassifier = new();
     private static SidsAnalyzer _sidsAnalyzer = new();
