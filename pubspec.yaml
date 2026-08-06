@@ -1,0 +1,23 @@
+name: night_helper
+description: App di test per sensore TrueDepth IR e acquisizione frame.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  camera: ^0.10.5+9
+  wakelock_plus: ^1.1.4
+  screen_brightness: ^2.1.11
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true

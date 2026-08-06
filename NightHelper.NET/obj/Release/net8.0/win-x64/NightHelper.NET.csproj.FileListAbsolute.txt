@@ -1,0 +1,14 @@
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\NightHelper.NET.deps.json
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\NightHelper.NET.dll
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\NightHelper.NET.pdb
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\NightHelper.NET.GeneratedMSBuildEditorConfig.editorconfig
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\NightHelper.NET.AssemblyInfoInputs.cache
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\NightHelper.NET.AssemblyInfo.cs
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\NightHelper.NET.csproj.CoreCompileInputs.cache
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\NightHelper.NET.dll
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\refint\NightHelper.NET.dll
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\NightHelper.NET.pdb
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\ref\NightHelper.NET.dll
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\onnxruntime.dll
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\onnxruntime_providers_shared.dll
+D:\Antigravity\NightHelper\NightHelper.NET\obj\Release\net8.0\win-x64\NightHelper.NET.csproj.AssemblyReference.cache

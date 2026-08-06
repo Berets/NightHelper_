@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "dgSpecHash": "MuMskUgZKxo=",
+  "success": true,
+  "projectFilePath": "D:\\Antigravity\\NightHelper\\NightHelper.NET\\NightHelper.NET.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\matte\\.nuget\\packages\\microsoft.dotnet.ilcompiler\\8.0.29\\microsoft.dotnet.ilcompiler.8.0.29.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\microsoft.ml.onnxruntime\\1.28.0\\microsoft.ml.onnxruntime.1.28.0.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\microsoft.ml.onnxruntime.managed\\1.28.0\\microsoft.ml.onnxruntime.managed.1.28.0.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.29\\microsoft.net.illink.tasks.8.0.29.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\runtime.win-x64.microsoft.dotnet.ilcompiler\\8.0.29\\runtime.win-x64.microsoft.dotnet.ilcompiler.8.0.29.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\system.memory\\4.5.5\\system.memory.4.5.5.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\system.numerics.tensors\\9.0.0\\system.numerics.tensors.9.0.0.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.29\\microsoft.netcore.app.runtime.win-x64.8.0.29.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.29\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.29.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.29\\microsoft.aspnetcore.app.runtime.win-x64.8.0.29.nupkg.sha512",
+    "C:\\Users\\matte\\.nuget\\packages\\runtime.win-x64.microsoft.dotnet.ilcompiler\\8.0.29\\runtime.win-x64.microsoft.dotnet.ilcompiler.8.0.29.nupkg.sha512"
+  ],
+  "logs": []
+}

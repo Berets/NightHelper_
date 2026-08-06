@@ -1,0 +1,6 @@
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\publish\onnxruntime.dll
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\publish\onnxruntime_providers_shared.dll
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\publish\NightHelper.NET.dll
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\publish\NightHelper.NET.pdb
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\publish\onnxruntime.lib
+D:\Antigravity\NightHelper\NightHelper.NET\bin\Release\net8.0\win-x64\publish\onnxruntime_providers_shared.lib

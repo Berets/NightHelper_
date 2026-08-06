@@ -1,0 +1,32 @@
+workflows:
+  pediatric-vital-engine-workflow:
+    name: Pediatric Vital Engine CI/CD
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+      dotnet: 8.0.x
+    scripts:
+      - name: Build C# Native AOT for Android (ARM64)
+        script: |
+          cd csharp_engine
+          dotnet publish -c Release -r android-arm64 /p:PublishAot=true /p:PublishTrimmed=true /p:PublishSingleFile=true
+          mkdir -p ../android/app/src/main/jniLibs/arm64-v8a
+          cp bin/Release/net8.0/android-arm64/publish/PediatricVitalEngine.so ../android/app/src/main/jniLibs/arm64-v8a/libPediatricVitalEngine.so
+      - name: Build C# Native AOT for iOS (ARM64)
+        script: |
+          cd csharp_engine
+          dotnet publish -c Release -r ios-arm64 /p:PublishAot=true /p:PublishTrimmed=true /p:PublishSingleFile=true
+          mkdir -p ../ios/Runner/Frameworks
+          cp bin/Release/net8.0/ios-arm64/publish/PediatricVitalEngine.dylib ../ios/Runner/Frameworks/
+      - name: Flutter Packages Get
+        script: |
+          flutter pub get
+      - name: Build Flutter Android App
+        script: |
+          flutter build apk --release
+      - name: Build Flutter iOS App
+        script: |
+          flutter build ios --release --no-codesign
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/ios/iphoneos/Runner.app

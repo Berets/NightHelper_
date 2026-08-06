@@ -1,0 +1,4 @@
+EXPORTS
+   DotNetRuntimeDebugHeader DATA
+   init_sleep_analyzer
+   calculate_vitals
