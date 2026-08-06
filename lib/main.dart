@@ -83,6 +83,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _confidence = 0.0;
   int _sleepState = -1;
   double _sleepConfidence = 0.0;
+  int _postureState = 0;
+  int _sidsRiskFlag = 0;
   List<double> _cardioWave = [];
   List<double> _respWave = [];
   bool _cameraFailed = false;
@@ -213,6 +215,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_prevFrameY == null || _prevFrameY!.length != gridSize) {
       _prevFrameY = Uint8List(gridSize);
     }
+    
+    // Buffer per inferenza ONNX (RGB intero, ridotto di step)
+    final Uint8List imagePixels = Uint8List(gridWidth * gridHeight * 3);
 
     int sumY = 0;
     int sumG = 0;
@@ -241,6 +246,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             }
           }
           _prevFrameY![gridIndex] = yValue;
+          
+          // Salva per ONNX (RGB)
+          int pxIdx = gridIndex * 3;
+          imagePixels[pxIdx] = r;
+          imagePixels[pxIdx + 1] = g;
+          imagePixels[pxIdx + 2] = b;
+
           gridIndex++;
 
           bool isInROI = x > (width * 0.3) && x < (width * 0.7) && y > (height * 0.3) && y < (height * 0.7);
@@ -272,22 +284,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
             }
           }
           _prevFrameY![gridIndex] = yValue;
+
+          final int uvIndex = (y ~/ 2) * uvRowStride + (x ~/ 2) * uvPixelStride;
+          final int uValue = uPlane.bytes[uvIndex];
+          final int vValue = vPlane.bytes[uvIndex];
+
+          final int cU = uValue - 128;
+          final int cV = vValue - 128;
+          int r = (yValue + 1.402 * cV).toInt().clamp(0, 255);
+          int g = (yValue - 0.344136 * cU - 0.714136 * cV).toInt().clamp(0, 255);
+          int b = (yValue + 1.772 * cU).toInt().clamp(0, 255);
+
+          int pxIdx = gridIndex * 3;
+          imagePixels[pxIdx] = r;
+          imagePixels[pxIdx + 1] = g;
+          imagePixels[pxIdx + 2] = b;
+
           gridIndex++;
 
           bool isInROI = x > (width * 0.3) && x < (width * 0.7) && y > (height * 0.3) && y < (height * 0.7);
           
           if (isInROI) {
-            final int uvIndex = (y ~/ 2) * uvRowStride + (x ~/ 2) * uvPixelStride;
-            final int uValue = uPlane.bytes[uvIndex];
-            final int vValue = vPlane.bytes[uvIndex];
-
             sumY += yValue;
-
-            final int cU = uValue - 128;
-            final int cV = vValue - 128;
-            int r = (yValue + 1.402 * cV).toInt().clamp(0, 255);
-            int g = (yValue - 0.344136 * cU - 0.714136 * cV).toInt().clamp(0, 255);
-
             sumR += r;
             sumG += g;
             validPixels++;
@@ -374,7 +392,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       // Invia i dati al processore C# tramite l'Isolate (circa 2 volte al secondo)
       if (_bufferIndex % 15 == 0) {
-        _vitalService.processCameraFrames(_signalBuffer.toList()).then((result) {
+        _vitalService.processCameraFrames(_signalBuffer.toList(), imagePixels, gridWidth, gridHeight).then((result) {
           if (mounted) {
             setState(() {
               // Smoothing UI (EMA) per evitare sbalzi improvvisi nei numeri
@@ -383,6 +401,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               
               _sleepState = result.sleepState;
               _sleepConfidence = result.sleepConfidence;
+              _postureState = result.postureState;
+              _sidsRiskFlag = result.sidsRiskFlag;
               
               _confidence = result.confidence;
               _cardioWave = result.cardioWave;
@@ -530,18 +550,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildBadge(
-                  "Stato Corpo", 
-                  _isBodyMoving ? "IN MOVIMENTO" : "FERMO", 
+                  "Postura AI", 
+                  _getPostureString(_postureState), 
+                  _getPostureColor(_postureState, _sidsRiskFlag)
+                ),
+                _buildBadge(
+                  "Rischio SIDS", 
+                  _sidsRiskFlag == 0 ? "SICURA" : (_sidsRiskFlag == 1 ? "ALLARME PRONA" : "ALLARME VISO"), 
+                  _sidsRiskFlag == 0 ? Colors.green : Colors.red
+                ),
+                _buildBadge(
+                  "Movimento", 
+                  _isBodyMoving ? "MACRO" : "MICRO/FERMO", 
                   _isBodyMoving ? Colors.red : Colors.green
                 ),
                 _buildBadge(
-                  "Orientamento Testa", 
-                  _isHeadTracked ? "TRACCIATO" : "IN RILOCAZIONE", 
-                  _isHeadTracked ? Colors.lightBlue : Colors.orange
-                ),
-                _buildBadge(
-                  "Irrequietezza", 
-                  "${_restlessnessIndex.toStringAsFixed(1)}/100", 
+                  "Irrequieto", 
+                  "${_restlessnessIndex.toStringAsFixed(0)}%", 
                   _restlessnessIndex > 50 ? Colors.red : (_restlessnessIndex > 20 ? Colors.orange : Colors.green)
                 ),
               ],
@@ -639,6 +664,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ],
     );
+  }
+
+  String _getPostureString(int state) {
+    switch (state) {
+      case 0: return "SUPINA";
+      case 1: return "PRONA";
+      case 2: return "LATERALE";
+      case 3: return "ASSENTE";
+      case 4: return "VISO COPERTO";
+      default: return "SCONOSCIUTA";
+    }
+  }
+
+  Color _getPostureColor(int state, int sidsRisk) {
+    if (sidsRisk > 0) return Colors.red;
+    if (state == 3) return Colors.grey;
+    if (state == 2) return Colors.lightBlue;
+    return Colors.green;
   }
 }
 

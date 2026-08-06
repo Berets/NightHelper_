@@ -29,14 +29,16 @@ public static class EngineAPI
     private const int EmptyBedTimeoutSeconds = 5;
 
     [UnmanagedCallersOnly(EntryPoint = "calculate_vitals")]
-    public static VitalMetrics CalculateVitals(IntPtr frameData, int width, int height)
+    public static unsafe VitalMetrics CalculateVitals(
+        float* signalBuffer, float* outResp, float* outCardio, int signalSize,
+        byte* imagePixels, int imgWidth, int imgHeight)
     {
         VitalMetrics metrics = new VitalMetrics();
         
         if (_inferencer == null) return metrics;
 
         // 1. Esegui Inferenza ONNX (ROI e Keypoints)
-        var result = _inferencer.ProcessFrame(frameData, width, height);
+        var result = _inferencer.ProcessFrame(imagePixels, imgWidth, imgHeight);
         
         // 2. Controllo "Lettino Vuoto" (Coordinate ROI perse > 5 sec)
         if (result.BoundingBox == null)

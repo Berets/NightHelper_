@@ -2,6 +2,15 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'native_vital_bridge.dart';
 
+class VitalPayload {
+  final List<double> samples;
+  final Uint8List imagePixels;
+  final int width;
+  final int height;
+
+  VitalPayload(this.samples, this.imagePixels, this.width, this.height);
+}
+
 class VitalService {
   
   Future<void> initialize() async {
@@ -10,11 +19,12 @@ class VitalService {
 
   final List<double> _rpmHistory = [];
 
-  Future<VitalResult> processCameraFrames(List<double> luminanceSamples) async {
+  Future<VitalResult> processCameraFrames(List<double> luminanceSamples, Uint8List imagePixels, int imgWidth, int imgHeight) async {
     if (luminanceSamples.isEmpty) return VitalResult(0, 0, 0, [], []);
 
     try {
-      final VitalResult result = await compute(_calculateInBackground, luminanceSamples);
+      final payload = VitalPayload(luminanceSamples, imagePixels, imgWidth, imgHeight);
+      final VitalResult result = await compute(_calculateInBackground, payload);
       
       // Iniezione dello Sleep Staging Mock se stiamo usando Dart Fallback
       int sleepState = -1;
@@ -57,6 +67,8 @@ class VitalService {
         result.cardioWave,
         sleepState: sleepState,
         sleepConfidence: sleepConfidence,
+        postureState: result.postureState,
+        sidsRiskFlag: result.sidsRiskFlag,
       );
     } catch (e) {
       debugPrint("ERRORE CRITICO NATIVO FFI: $e");
@@ -64,11 +76,20 @@ class VitalService {
     }
   }
 
-  static VitalResult _calculateInBackground(List<double> samples) {
+  static VitalResult _calculateInBackground(VitalPayload payload) {
+    // Prova a usare il bridge FFI prima
+    try {
+      if (NativeVitalBridge.isInitialized) {
+         return NativeVitalBridge.calculateVitals(payload.samples, payload.imagePixels, payload.width, payload.height);
+      }
+    } catch (e) {
+      debugPrint("FFI error in isolate: $e");
+    }
+
     // FALLBACK TEMPORANEO 100% DART
     // Dato che la build C# per Android NativeAOT è bloccata dalla mancanza dell'SDK Bionic,
     // eseguiamo la stessa matematica (FFT, Z-Score) in Dart per permetterti di testare la telecamera ORA.
-    
+    List<double> samples = payload.samples;
     int bufferSize = samples.length;
     double sum = 0;
     for (int i = 0; i < bufferSize; i++) sum += samples[i];

@@ -29,17 +29,71 @@ public class OnnxInferencer : IDisposable
         _session = new InferenceSession(modelPath, options);
     }
 
-    public InferenceResult ProcessFrame(IntPtr frameData, int width, int height)
+    public unsafe InferenceResult ProcessFrame(byte* rgbPixels, int width, int height)
     {
-        // Dummy implementation simulating a YOLO/MediaPipe output
-        // In a real scenario, we'd convert the raw pointer to a Tensor<float>
-        // and run _session.Run(inputs).
+        // 1. Prepare tensor (YOLOv8 requires [1, 3, 640, 640] float tensor with normalized values 0-1)
+        var tensor = new DenseTensor<float>(new[] { 1, 3, 640, 640 });
         
+        if (rgbPixels != null && width > 0 && height > 0)
+        {
+            // Nearest neighbor scaling da width*height a 640x640
+            float scaleX = (float)width / 640f;
+            float scaleY = (float)height / 640f;
+
+            for (int y = 0; y < 640; y++)
+            {
+                int srcY = (int)(y * scaleY);
+                if (srcY >= height) srcY = height - 1;
+
+                for (int x = 0; x < 640; x++)
+                {
+                    int srcX = (int)(x * scaleX);
+                    if (srcX >= width) srcX = width - 1;
+
+                    int srcIndex = (srcY * width + srcX) * 3;
+
+                    tensor[0, 0, y, x] = rgbPixels[srcIndex] / 255f;     // R
+                    tensor[0, 1, y, x] = rgbPixels[srcIndex + 1] / 255f; // G
+                    tensor[0, 2, y, x] = rgbPixels[srcIndex + 2] / 255f; // B
+                }
+            }
+        }
+
+        var inputs = new List<NamedOnnxValue>
+        {
+            NamedOnnxValue.CreateFromTensor("images", tensor)
+        };
+
+        // 2. Run inference
+        using var results = _session.Run(inputs);
+        var outputTensor = results.First().AsTensor<float>();
+
+        // 3. Post-process (NMS)
+        float[] outputArray = outputTensor.ToArray();
+        var bestPred = YoloNms.ProcessYoloOutput(outputArray, numBoxes: 8400, numClasses: 1, numKeypoints: 17, confThreshold: 0.5f, iouThreshold: 0.45f);
+
+        if (bestPred == null)
+        {
+            return new InferenceResult { BoundingBox = null, Keypoints = Array.Empty<float>() };
+        }
+
+        // Normalize box coordinates (YOLO outputs in 640x640 pixel coordinates)
+        bestPred.Box.X /= 640f;
+        bestPred.Box.Y /= 640f;
+        bestPred.Box.Width /= 640f;
+        bestPred.Box.Height /= 640f;
+
+        // Normalize keypoints (x, y)
+        for (int i = 0; i < bestPred.Keypoints.Length; i += 3)
+        {
+            bestPred.Keypoints[i] /= 640f;     // x
+            bestPred.Keypoints[i + 1] /= 640f; // y
+        }
+
         return new InferenceResult
         {
-            BoundingBox = new BoundingBox { X = 0.4f, Y = 0.3f, Width = 0.2f, Height = 0.25f },
-            // Simulated 5 facial keypoints (x,y)
-            Keypoints = new float[] { 0.45f, 0.35f, 0.55f, 0.35f, 0.5f, 0.4f, 0.45f, 0.45f, 0.55f, 0.45f }
+            BoundingBox = bestPred.Box,
+            Keypoints = bestPred.Keypoints
         };
     }
 
