@@ -1,5 +1,6 @@
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
+import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 
 // Struct Nativa C# -> Dart FFI
