@@ -4,7 +4,6 @@ workflows:
     instance_type: mac_mini_m1
     environment:
       flutter: stable
-      dotnet: 8.0.x
     scripts:
       - name: Build C# Native AOT for Android (ARM64)
         script: |
