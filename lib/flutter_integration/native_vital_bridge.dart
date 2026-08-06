@@ -49,6 +49,7 @@ class VitalResult {
   final int sleepState; // 0=Wake, 1=Light, 2=Deep, 3=REM, -1=Unknown
   final double sleepConfidence;
   final int postureState;
+  final int motionState;
   final int sidsRiskFlag;
 
   VitalResult(
@@ -60,6 +61,7 @@ class VitalResult {
     this.sleepState = -1,
     this.sleepConfidence = 0.0,
     this.postureState = 0,
+    this.motionState = 0,
     this.sidsRiskFlag = 0,
   });
 }
@@ -179,6 +181,7 @@ class NativeVitalBridge {
         respWave, 
         cardioWave,
         postureState: resultStruct.postureState,
+        motionState: resultStruct.motionState,
         sidsRiskFlag: resultStruct.sidsRiskFlag,
       );
     } finally {

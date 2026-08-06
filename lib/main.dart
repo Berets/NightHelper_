@@ -325,63 +325,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bool isNight = avgY < 20.0;
       double rawSignal = isNight ? avgY : (avgG / avgR);
 
-      // -- 2. CLASSIFICAZIONE DEL MOVIMENTO A 3 LIVELLI --
-      double motionPercentage = (diffPixelsCount / gridSize) * 100.0;
-
-      bool macroMotion = false;
-      bool mesoMotion = false;
-
-      // Alziamo le soglie: l'iperventilazione causa grossi movimenti del torace/spalle.
-      // Se le teniamo troppo basse, il filtro anti-artefatto si attiva e congela l'onda (flatline).
-      if (motionPercentage > 40.0) {
-        // MACRO-MOVIMENTO: Variazione globale > 40% (Utente si è alzato/spostato)
-        macroMotion = true;
-      } else if (motionPercentage > 15.0) {
-        // MESO-MOVIMENTO: Variazione locale 15-40% (Movimenti improvvisi del braccio/testa)
-        mesoMotion = true;
-      } else {
-        // MICRO-MOVIMENTO: < 2% (Respirazione pulita)
-      }
-
-      // -- 3. GESTIONE STATO & SOVRASCRITTURA BUFFER --
-      bool wasBodyMoving = _isBodyMoving;
-      bool wasHeadTracked = _isHeadTracked;
-
-      if (macroMotion) {
-        _isBodyMoving = true;
-        _isHeadTracked = false;
-        _framesSinceLastMovement = 0;
-        
-        // Incrementa irrequietezza notturna (ammortizzato)
-        _restlessnessIndex = (_restlessnessIndex + 0.5).clamp(0.0, 100.0);
-        
-        // PAUSA RESPIRAZIONE: Scriviamo nel buffer un artefatto (Rosso/Arancio) e 
-        // usiamo l'ultimo valore valido per evitare spike distruttivi nel DSP C#
+      // Salva il segnale calcolato
+      if (_isBodyMoving) {
         _artifactBuffer[_bufferIndex] = 1;
         _signalBuffer[_bufferIndex] = _bufferIndex > 0 ? _signalBuffer[_bufferIndex - 1] : rawSignal;
-        
-      } else if (mesoMotion) {
-        _isBodyMoving = false;
-        _isHeadTracked = false; // Rilocazione Testa
-        _framesSinceLastMovement = 0;
-        
-        _restlessnessIndex = (_restlessnessIndex + 0.1).clamp(0.0, 100.0);
-        
-        _artifactBuffer[_bufferIndex] = 1;
-        _signalBuffer[_bufferIndex] = _bufferIndex > 0 ? _signalBuffer[_bufferIndex - 1] : rawSignal;
-        
       } else {
-        _isBodyMoving = false;
-        _framesSinceLastMovement++;
-
-        // Dopo ~1.5 sec di immobilità, riagganciamo la ROI in modo sicuro
-        if (_framesSinceLastMovement > _roiRelockFrames) {
-          _isHeadTracked = true;
-          // Abbassiamo lentamente l'irrequietezza se dorme sereno
-          _restlessnessIndex = (_restlessnessIndex - 0.05).clamp(0.0, 100.0);
-        }
-
-        // Segnale pulito: invia il calcolo rPPG/Meccanico al buffer
         _artifactBuffer[_bufferIndex] = 0;
         _signalBuffer[_bufferIndex] = rawSignal;
       }
@@ -395,6 +343,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _vitalService.processCameraFrames(_signalBuffer.toList(), imagePixels, gridWidth, gridHeight).then((result) {
           if (mounted) {
             setState(() {
+              // Applica il motion state da YOLO (0=Micro/Fermo, 1=Meso, 2=Macro)
+              if (result.motionState == 2) {
+                _isBodyMoving = true;
+                _isHeadTracked = false;
+                _framesSinceLastMovement = 0;
+              } else if (result.motionState == 1) {
+                _isBodyMoving = false;
+                _isHeadTracked = false;
+                _framesSinceLastMovement = 0;
+              } else {
+                _isBodyMoving = false;
+                _framesSinceLastMovement += 15;
+                if (_framesSinceLastMovement > _roiRelockFrames) {
+                  _isHeadTracked = true;
+                }
+              }
+
               // Smoothing UI (EMA) per evitare sbalzi improvvisi nei numeri
               if (result.bpm > 0) _bpm = (_bpm == 0.0) ? result.bpm : (_bpm * 0.8 + result.bpm * 0.2);
               if (result.rpm > 0) _rpm = (_rpm == 0.0) ? result.rpm : (_rpm * 0.8 + result.rpm * 0.2);
@@ -414,8 +379,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       // Throttle Aggiornamenti UI Testuale
       if (isNight != _isNightMode || 
-          wasBodyMoving != _isBodyMoving || 
-          wasHeadTracked != _isHeadTracked ||
           _frameCount % 30 == 0) {
         
         Future.microtask(() {
